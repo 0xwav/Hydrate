@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct HydrateApp: App {
+    @AppStorage("hasSeenOnboarding") var hasSeenOnboarding: Bool = false
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DashboardView()
+                
+            }
         }
     }
-}
+
