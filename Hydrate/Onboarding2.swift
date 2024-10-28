@@ -8,22 +8,25 @@ import SwiftUI
 
 struct OnboardingSecondView: View {
     
-    //time picker func var
-    @State private var selectedHour = 1
-    @State private var selectedMinute = 0
-    @State private var selectedPeriod = "AM"
-    @State private var showTimePicker = false
-    @State private var startHour = Date() // Internal 24-hour format
-    
-    let hours = Array(1...12)
-    let minutes = Array(0..<60)
-    let periods = ["AM", "PM"]
-    
-    ///
-    
+    @AppStorage("startHour") private var startHourData: Data = Date().toData()
+     @AppStorage("endHour") private var endHourData: Data = Date().toData()
+     
+     // Convert Data to Date
+     @State private var startHour: Date = Date()
+     @State private var endHour: Date = Date()
+     @State private var selectedHour = 1
+     @State private var selectedMinute = 0
+     @State private var selectedStartPeriod = "AM"  // AM/PM for start time
+     @State private var selectedEndPeriod = "AM"    // AM/PM for end time
+     @State private var showStartTimePicker = false
+     @State private var showEndTimePicker = false
+     @State private var isSelectingStartTime = true  // Indicates which time picker is active
+     
+     // Data arrays for hours, minutes, and periods (AM/PM)
+     let hours = Array(1...12)
+     let minutes = Array(0..<60)
+     let periods = ["AM", "PM"]
 
-    @State private var StartHour = Date()
-    @State private var endHour = Date()
     
     @State private var selectedInterval = 15
     var intervals = [15, 30, 60, 90, 120, 180, 240, 300] // In minutes
@@ -54,35 +57,43 @@ struct OnboardingSecondView: View {
                     Text("Specify the start and end date to receive the notifications ")
                         .font(.system(size: 16))
                         .foregroundStyle(Color.gray)
-                        
+                        // .lineLimit(nil) // لإظهار كل النص
+                        .frame(maxWidth: .infinity,minHeight: 42, alignment: .leading)
+                    
                 }.frame(maxWidth: .infinity,alignment: .leading)
-                VStack{
-                    
-                    //start time
-                    HStack{
-                        Text("Start hour")
-                            .font(.system(size: 17))
-                        Spacer()
+           
+                VStack(alignment: .center){
+                
+                        //start time
+                        HStack{
+                            Text("Start hour")
+                                .font(.system(size: 17))
+                            Spacer()
+                            
+                            timePickerButton(title: "Start Time", isStartTime: true)
+                            
+                        }.padding(.horizontal)
+                        .frame(minHeight: 44,alignment: .center)
                         
-                        timePickerButton()
                         
-                    }.padding(.horizontal)
-                    
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    //end time
-                    HStack{
-                        Text("End hour")
-                            .font(.system(size: 17))
-                        Spacer()
-                        timePickerButton()
+                        Divider()
+                            .padding(.horizontal)
                         
-                    }.padding(.horizontal)
+                        //end time
+                        HStack{
+                            Text("End hour")
+                                .font(.system(size: 17))
+                            Spacer()
+                            
+                            timePickerButton(title: "End Time", isStartTime: false)
+                        }.padding(.horizontal)
+                        .frame(minHeight: 44,alignment: .center)
+                        
+                   
                     
                 }.frame(maxWidth: .infinity,maxHeight: 108)
-                    
-                    .background(Color.lightGray2)
+                 .background(Color.lightGray2)
+                
                 
                 
             }.padding(.bottom,40)
@@ -105,17 +116,12 @@ struct OnboardingSecondView: View {
                             Button(action: {
                                 selectedInterval = interval
                             }) {
-//                                if interval >= 90 {
-//                                    Text("\(interval) \n Mins")
-//                                }else {
-//                                    Text("\(interval / 60) \n Hours")
-//                                }
                                 Text(attributedString(for: interval, isSelected: selectedInterval == interval))
                                     .font(.system(size: 17))
                                     .lineLimit(20)
                                     .frame(width: 77, height: 70)
                                     .foregroundColor(.clear)
-                                    //.foregroundColor(selectedInterval == interval ? .white : .gray)
+                                //.foregroundColor(selectedInterval == interval ? .white : .gray)
                                     .background(selectedInterval == interval ? Color.skyBlue : Color(.systemGray6))
                                     .cornerRadius(10)
                             }
@@ -125,10 +131,11 @@ struct OnboardingSecondView: View {
             }
             
             Spacer()
-           
+            
             Button(action:{
                 showOnboarding = false
-                   }){
+                requestNotificationPermission()
+            }){
                 Text("Start")
                     .frame(maxWidth: .infinity,maxHeight: 50)
                     .foregroundColor(.white)
@@ -137,23 +144,32 @@ struct OnboardingSecondView: View {
                     .padding(.vertical)
                     .padding(.bottom, 18)
             }
-                   
-                
+            
+            
         }//main vstack
-        .padding()
+       // .padding()
         .navigationBarBackButtonHidden(true)
-        .onAppear{
-            checkForPermission()
-        }
-        
+        .onAppear {
+                    // Load the saved dates if available
+                    if let storedStartHour = Date.fromData(startHourData) {
+                        startHour = storedStartHour
+                    }
+                    if let storedEndHour = Date.fromData(endHourData) {
+                        endHour = storedEndHour
+                    }
+                }
     }
     
+    func printprint(){
+        print("start hour: \(startHourData)")
+        print("end hour: \(endHourData)")
+    }
     
     //LazyVGrid text attribute
     func attributedString(for interval: Int, isSelected: Bool) -> AttributedString {
         let numberColor: Color = isSelected ? .white : .skyBlue
         let textColor: Color = isSelected ? .white : .black
-
+        
         if interval < 120 {
             let minutesString = "\(interval)"
             let minText = "\n Mins"
@@ -178,167 +194,279 @@ struct OnboardingSecondView: View {
             return attributedHours + attributedHoursText
         }
     }
-
-    
-    // Time Picker functions
-    // Function to encapsulate the Time Picker Button with AM/PM Picker
-    func timePickerButton() -> some View {
-        HStack {
-            // Button to display the time picker
-            Button(action: {
-                showTimePicker.toggle()
-            }) {
-                Text(formattedTime())
-                    .font(.system(size: 16))
-                    .padding()
-                    .frame(maxWidth: 74, maxHeight: 34, alignment: .trailing)
-                    .background(Color.lightGray2)
-                    .foregroundStyle(.black)
-                    .cornerRadius(8)
-            }
-            .padding()
-            .sheet(isPresented: $showTimePicker) {
-                timePickerSheet()
-                    .presentationDetents([.medium]) // Adjust the sheet height to medium
-            }
-
-            // AM/PM Picker
-            Picker("AM/PM", selection: $selectedPeriod) {
-                ForEach(periods, id: \.self) { period in
-                    Text(period).tag(period)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .frame(maxWidth: 100, minHeight: 34)
-            .cornerRadius(10)
-        }
-    }
-
-    // Function to encapsulate the Time Picker Sheet
-    func timePickerSheet() -> some View {
-        VStack {
-            HStack {
-                // Hour Picker
-                Picker("Select Hour", selection: $selectedHour) {
-                    ForEach(hours, id: \.self) { hour in
-                        Text("\(hour)").tag(hour)
-                    }
-                }
-                .pickerStyle(WheelPickerStyle())
-                .frame(minWidth: 28, minHeight: 28, alignment: .trailing)
-                .clipped()
-                .font(.system(size: 13))
-
-                // Minute Picker
-                Picker("Select Minute", selection: $selectedMinute) {
-                    ForEach(minutes, id: \.self) { minute in
-                        Text(String(format: "%02d", minute)).tag(minute)
-                    }
-                }
-                .pickerStyle(WheelPickerStyle())
-                .frame(minWidth: 28, minHeight: 28, alignment: .trailing)
-                .clipped()
-            }
-            .padding()
-
-            // Confirm button to save the selected time
-            Button("Done") {
-                convertTo24HourFormat()
-                showTimePicker.toggle() // Close the sheet
-            }
-            .padding()
-        }
-    }
-
-    // Convert the selected time to 24-hour format
-    func convertTo24HourFormat() {
-        var hourIn24Format = selectedHour
-        if selectedPeriod == "PM" && selectedHour != 12 {
-            hourIn24Format += 12 // Convert PM hours to 24-hour
-        } else if selectedPeriod == "AM" && selectedHour == 12 {
-            hourIn24Format = 0 // Handle 12 AM as midnight (00:00)
-        }
-
-        let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month, .day], from: startHour)
-        components.hour = hourIn24Format
-        components.minute = selectedMinute
-
-        if let newDate = calendar.date(from: components) {
-            startHour = newDate
-        }
-    }
-
-    // Custom formatter to display only hour and minute, without AM/PM
-    func formattedTime() -> String {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.hour, .minute], from: startHour)
-
-        let hour = components.hour! % 12 == 0 ? 12 : components.hour! % 12 // Handle 12-hour format
-        let minute = String(format: "%02d", components.minute!)
-
-        return "\(hour):\(minute)" // Only display hour:minute, no AM/PM
-    }
     
     
-    
-    
-    
-    //notification permission
-    func checkForPermission(){
-        let notificationCenter = UNUserNotificationCenter.current()
-        notificationCenter.getNotificationSettings{ settings in
-            switch settings.authorizationStatus {
-            case .authorized:
-                return
-                //self.dispatchNotification(startHour: startHour, endHour: endHour, intervalMinutes: selectedInterval)
-            case .denied:
-                return
-            case .notDetermined:
-                notificationCenter.requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
-                    if success {
-                        //self.dispatchNotification(startHour: startHour, endHour: endHour, intervalMinutes: selectedInterval)
-                    }
-                }
-            default:
-                return
-            }
-        }
-    }
-    
-    func dispatchNotification(startHour: Date,_: (), endHour: Date,_: (), intervalMinutes: Int){
-        let identifier = "myNotification1"
-        let title = "Time to drink"
-        let body = "It's time to drink water"
-        let hour = 19 //4 PM
-        let minute = 50
-        let isDaily = true
+    // Function to save the notification preferences (backend-like functionality)
+    func saveNotificationPreferences() {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
         
-        let notificationCenter = UNUserNotificationCenter.current()
+        let startHourString = formatter.string(from: startHour)
+        let endHourString = formatter.string(from: endHour)
+        
+        // Saving preferences (you can modify this to save in UserDefaults or backend API)
+        print("Start Hour: \(startHourString)")
+        print("End Hour: \(endHourString)")
+        print("Selected Interval: \(selectedInterval)")
+        
+        // Simulate saving to UserDefaults (or backend)
+        UserDefaults.standard.set(startHourString, forKey: "startHour")
+        UserDefaults.standard.set(endHourString, forKey: "endHour")
+        UserDefaults.standard.set(selectedInterval, forKey: "notificationInterval")
+    }
+    
+    // Function to schedule notifications based on selected preferences
+    /* func scheduleNotifications() {
+     // Request permission for notifications
+     UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+     if granted {
+     // Remove any previously scheduled notifications
+     UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+     
+     let calendar = Calendar.current
+     
+     // Calculate interval in minutes from the selected interval string
+     let intervalMinutes: Int = {
+     let parts = selectedInterval.components(separatedBy: " ")
+     if let value = Int(parts[0]) {
+     return parts[1].lowercased().contains("hour") ? value * 60 : value
+     }
+     return 15
+     }()
+     
+     var currentDate = startHour
+     
+     while currentDate < endHour {
+     let components = calendar.dateComponents([.hour, .minute], from: currentDate)
+     
+     let content = UNMutableNotificationContent()
+     content.title = "Stay Hydrated!"
+     content.body = "Remember to drink water and stay hydrated."
+     content.sound = UNNotificationSound.default
+     
+     // Schedule the notification for the current time
+     let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+     let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+     UNUserNotificationCenter.current().add(request)
+     
+     // Increment the currentDate by the interval chosen by the user
+     currentDate = calendar.date(byAdding: .minute, value: intervalMinutes, to: currentDate) ?? currentDate
+     }
+     } else if let error = error {
+     print("Notification permission denied: \(error.localizedDescription)")
+     }
+     }
+     }
+     */
+    
+    //--------------------------------------------------------------------
+    // TESTING 5 SEC
+    func scheduleNotifications() {
+        // Request permission for notifications
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if granted {
+                // Remove any previously scheduled notifications
+                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+                
+                // Set the interval to 5 seconds for testing purposes
+                let intervalSeconds = 5
+                
+                // For testing, schedule 10 notifications with a 5-second interval
+                let numberOfNotifications = 10
+                
+                for i in 0..<numberOfNotifications {
+                    let content = UNMutableNotificationContent()
+                    content.title = "Stay Hydrated!"
+                    content.body = "Remember to drink water and stay hydrated."
+                    content.sound = UNNotificationSound.default
+                    
+                    // Use UNTimeIntervalNotificationTrigger, making sure the timeInterval is greater than 0
+                    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval((i + 1) * intervalSeconds), repeats: false)
+                    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+                    
+                    UNUserNotificationCenter.current().add(request) { error in
+                        if let error = error {
+                            print("Error scheduling notification: \(error.localizedDescription)")
+                        } else {
+                            print("Scheduled notification \(i + 1)")
+                        }
+                    }
+                }
+            } else if let error = error {
+                print("Notification permission denied: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    
+    ///------------------------------------------------------------------------------------------------
+    
+    // Button that shows the time picker in a sheet
+       func timePickerButton(title: String, isStartTime: Bool) -> some View {
+           HStack {
+               Button(action: {
+                   // Toggle the appropriate time picker sheet
+                   isSelectingStartTime = isStartTime
+                   if isStartTime {
+                       showStartTimePicker.toggle()
+                   } else {
+                       showEndTimePicker.toggle()
+                   }
+               }) {
+                   Text(isStartTime ? formattedTime(for: startHour) : formattedTime(for: endHour)) // Displays the selected time
+                       .font(.system(size: 17))
+                       .padding()
+                       .frame(maxWidth: 74, maxHeight: 34, alignment: .trailing)
+                       .background(Color.gray.opacity(0.2))
+                       .foregroundStyle(.black)
+                       .cornerRadius(8)
+               }
+               .padding()
+               .sheet(isPresented: isStartTime ? $showStartTimePicker : $showEndTimePicker) {
+                   // Show the appropriate time picker in a modal sheet
+                   timePickerSheet()
+               }
+               
+               // Separate AM/PM picker for start and end time
+               Picker("AM/PM", selection: isStartTime ? $selectedStartPeriod : $selectedEndPeriod) {
+                   ForEach(periods, id: \.self) { period in
+                       Text(period).tag(period)
+                   }
+               }
+               .pickerStyle(SegmentedPickerStyle())
+               .frame(maxWidth: 100, minHeight: 34)
+               .cornerRadius(10)
+           }
+       }
+       
+       // Time picker sheet with wheel-style pickers for hours and minutes
+       func timePickerSheet() -> some View {
+           VStack {
+               HStack {
+                   Picker("Select Hour", selection: $selectedHour) {
+                       ForEach(hours, id: \.self) { hour in
+                           Text("\(hour)").tag(hour)
+                       }
+                   }
+                   .pickerStyle(WheelPickerStyle())
+                   .frame(minWidth: 28, minHeight: 28, alignment: .trailing)
+                   .clipped()
+                   
+                   Picker("Select Minute", selection: $selectedMinute) {
+                       ForEach(minutes, id: \.self) { minute in
+                           Text(String(format: "%02d", minute)).tag(minute)
+                       }
+                   }
+                   .pickerStyle(WheelPickerStyle())
+                   .frame(minWidth: 28, minHeight: 28, alignment: .trailing)
+                   .clipped()
+               }
+               .padding()
+               
+               // Done button to save selected time and close the picker
+               Button("Done") {
+                   convertTo24HourFormat()
+                   saveTimeToStorage()
+                   if isSelectingStartTime {
+                       showStartTimePicker.toggle()
+                   } else {
+                       showEndTimePicker.toggle()
+                   }
+               }
+               .padding()
+           }
+       }
+       
+       // Converts selected time into 24-hour format and updates the binding
+       func convertTo24HourFormat() {
+           var hourIn24Format = selectedHour
+           
+           // Check selected period for each time
+           let selectedPeriod = isSelectingStartTime ? selectedStartPeriod : selectedEndPeriod
+           if selectedPeriod == "PM" && selectedHour != 12 {
+               hourIn24Format += 12
+           } else if selectedPeriod == "AM" && selectedHour == 12 {
+               hourIn24Format = 0
+           }
+           
+           var components = Calendar.current.dateComponents([.year, .month, .day], from: isSelectingStartTime ? startHour : endHour)
+           components.hour = hourIn24Format
+           components.minute = selectedMinute
+           
+           if let newDate = Calendar.current.date(from: components) {
+               if isSelectingStartTime {
+                   startHour = newDate
+               } else {
+                   endHour = newDate
+               }
+           }
+       }
+       
+       // Saves the selected time to storage
+       func saveTimeToStorage() {
+           startHourData = startHour.toData()
+           endHourData = endHour.toData()
+       }
+       
+       // Formats the selected time in 12-hour format
+       func formattedTime(for date: Date) -> String {
+           let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+           
+           let hour = components.hour! % 12 == 0 ? 12 : components.hour! % 12
+           let minute = String(format: "%02d", components.minute!)
+           
+           return "\(hour):\(minute)"
+       }
+
+// Extensions to convert Date to Data and vice versa
+
+    
+    
+    //Notification
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error = error {
+                print("Error requesting permission: \(error)")
+            } else {
+                print("Permission granted: \(granted)")
+            }
+        }
+    }
+    
+    
+    func scheduleNotification() {
         let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
+        content.title = "Reminder"
+        content.body = "It's time for your scheduled reminder!"
         content.sound = .default
         
-        let calender = Calendar.current
-        var dateComponents = DateComponents(calendar: calender, timeZone: TimeZone.current)
+        // Set a trigger for a specific date and time
+        var dateComponents = DateComponents()
+        dateComponents.second = 14 // Set your desired hour
+        dateComponents.minute = 0 // Set your desired minute
         
-        for hour in stride(from: startHour, to: endHour, by: Date.Stride(intervalMinutes / 60)) {
-            let minute = intervalMinutes % 60
-            
-            dateComponents.hour = minute
-            dateComponents.minute = minute
-            
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: isDaily)
-            let request = UNNotificationRequest(identifier: "\(identifier)_\(hour)_\(minute)", content: content, trigger: trigger)
-            
-            notificationCenter.removePendingNotificationRequests(withIdentifiers: ["\(identifier)_\(hour)_\(minute)"])
-            notificationCenter.add(request){ error in
-                if let error = error {
-                    print("Error scheduling notification: \(error.localizedDescription)")
-                }
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+        
+        // Create the request
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        
+        // Schedule the notification
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Error scheduling notification: \(error)")
+            } else {
+                print("Notification scheduled!")
             }
-            
         }
+    }
+}
+
+extension Date {
+    func toData() -> Data {
+        try! JSONEncoder().encode(self)
+    }
+    
+    static func fromData(_ data: Data) -> Date? {
+        try? JSONDecoder().decode(Date.self, from: data)
     }
 }
