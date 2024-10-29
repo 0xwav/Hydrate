@@ -37,7 +37,7 @@ struct OnboardingStartView: View {
                     Text("Start with Hydrate to record and track your water intake daily based on your needs and stay hydrated")
                         .font(.system(size: 17))
                         .lineLimit(22)
-                        .foregroundStyle(.darkGray)
+                        .foregroundStyle(.gray.opacity(0.8))
                         .frame(maxWidth: .infinity,minHeight: 66,alignment: .leading)
                         .padding(.bottom,11)
                     
