@@ -1,3 +1,5 @@
+![banner](https://github.com/0xwav/Hydrate/tree/main/images/banner.png)
+
 # Hydrate
 
 **Hydrate** is a personalized hydration assistant app that helps you stay on track with your daily water intake goals.  
