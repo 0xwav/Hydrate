@@ -1,4 +1,4 @@
-![banner](https://github.com/0xwav/Hydrate/tree/main/images/banner.png)
+![banner](images/banner.png)
 
 # Hydrate
 
