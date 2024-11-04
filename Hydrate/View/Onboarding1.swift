@@ -8,9 +8,7 @@ import SwiftUI
 
 struct OnboardingStartView: View {
     
-    @AppStorage("weight") var weight: String = ""
-    @AppStorage("literPerDay") public var literPerDay: Double = 0
-    @AppStorage("waterPerDay") var waterPerDay: Double = 0
+    @EnvironmentObject private var userDefaults: UserDefaultViewModel
     @Environment(\.dismiss) var dismiss
     
     @Binding var showOnboarding: Bool
@@ -37,7 +35,7 @@ struct OnboardingStartView: View {
                     Text("Start with Hydrate to record and track your water intake daily based on your needs and stay hydrated")
                         .font(.system(size: 17))
                         .lineLimit(22)
-                        .foregroundStyle(.darkGray)
+                        .foregroundStyle(.gray.opacity(0.8))
                         .frame(maxWidth: .infinity,minHeight: 66,alignment: .leading)
                         .padding(.bottom,11)
                     
@@ -49,16 +47,16 @@ struct OnboardingStartView: View {
                             .font(.system(size: 17))
                         
                         
-                        TextField("Value", text: $weight)
+                        TextField("Value", text: $userDefaults.weight)
                             .padding(.horizontal)
                             .frame(width:90 , height: 22)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.leading)
                         
                         Spacer()
-                        if !weight.isEmpty {
+                        if !userDefaults.weight.isEmpty {
                             Button(action: {
-                                weight = ""
+                                userDefaults.weight = ""
                             }) {
                                 Image(systemName: "x.circle.fill")
                                     .frame(width: 44, height: 44 ,alignment: .center)
@@ -91,8 +89,8 @@ struct OnboardingStartView: View {
                     }).navigationBarBackButtonHidden(true)
                       .simultaneousGesture(
                         TapGesture().onEnded {
-                            waterPerDay = getLiterPerDay() // Perform the calculation
-                            print(waterPerDay) // Print result
+                            userDefaults.waterPerDay = userDefaults.getLiterPerDay() // Perform the calculation
+                            print(userDefaults.waterPerDay) // Print result
                         }
                     )
             }
@@ -102,18 +100,4 @@ struct OnboardingStartView: View {
         .ignoresSafeArea()
     }
     
-    //rounds only the fractional part of a number
-    func roundFractionalPartToTenth(_ value: Double) -> Double {
-        let integerPart = floor(value)
-        let fractionalPart = value - integerPart
-        let roundedFractionalPart = round(fractionalPart * 10) / 10
-        return integerPart + roundedFractionalPart
-    }
-    
-    //the formula
-    func getLiterPerDay()->Double{
-        let W = Double(weight)
-        literPerDay=roundFractionalPartToTenth((W ?? 0)*0.03)
-        return literPerDay
-    }
 }
