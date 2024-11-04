@@ -44,10 +44,10 @@ The project is currently working with **AppStorage** to manage user settings and
 
 Here are some screenshots of the **Hydrate** app in action:
 <div style="display: flex; justify-content: space-around;">
-  <img src="images/Screenshot04.png" alt="Progress Tracking Screen" width="250">  
-  <img src="images/Screenshot03.png" alt="Reminders Screen" width="250">  
-  <img src="images/Screenshot02.png" alt="Width" width="250">  
-  <img src="images/Screenshot01.png" alt="Progress Tracking Screen" width="250">  
+  <img src="images/Screenshot04.png" alt="Progress Tracking Screen" width="230">  
+  <img src="images/Screenshot03.png" alt="Reminders Screen" width="230">  
+  <img src="images/Screenshot02.png" alt="Width" width="230">  
+  <img src="images/Screenshot01.png" alt="Progress Tracking Screen" width="230">  
 </div>
 
 ## Contributing🤝
